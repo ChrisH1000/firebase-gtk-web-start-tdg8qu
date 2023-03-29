@@ -10,7 +10,8 @@ import {
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import {} from 'firebase/firestore';
+
+import { getFirestore, addDoc, collection } from 'firebase/firestore';
 
 import * as firebaseui from 'firebaseui';
 
@@ -43,6 +44,7 @@ async function main() {
 
   initializeApp(firebaseConfig);
   auth = getAuth();
+  db = getFirestore();
 
   // FirebaseUI config
   const uiConfig = {
@@ -78,9 +80,30 @@ async function main() {
   onAuthStateChanged(auth, (user) => {
     if (user) {
       startRsvpButton.textContent = 'LOGOUT';
+      // Show guestbook to logged-in users
+      guestbookContainer.style.display = 'block';
     } else {
       startRsvpButton.textContent = 'RSVP';
+      // Hide guestbook for non-logged-in users
+      guestbookContainer.style.display = 'none';
     }
+  });
+
+  // Listen to the form submission
+  form.addEventListener('submit', async (e) => {
+    // Prevent the default form redirect
+    e.preventDefault();
+    // Write a new message to the database collection "guestbook"
+    addDoc(collection(db, 'guestbook'), {
+      text: input.value,
+      timestamp: Date.now(),
+      name: auth.currentUser.displayName,
+      userId: auth.currentUser.uid,
+    });
+    // clear message input field
+    input.value = '';
+    // Return false to avoid redirect
+    return false;
   });
 }
 main();

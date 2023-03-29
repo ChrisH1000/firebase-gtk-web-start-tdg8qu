@@ -11,7 +11,14 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth';
 
-import { getFirestore, addDoc, collection } from 'firebase/firestore';
+import {
+  getFirestore,
+  addDoc,
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+} from 'firebase/firestore';
 
 import * as firebaseui from 'firebaseui';
 
@@ -82,10 +89,14 @@ async function main() {
       startRsvpButton.textContent = 'LOGOUT';
       // Show guestbook to logged-in users
       guestbookContainer.style.display = 'block';
+      // Subscribe to the guestbook collection
+      subscribeGuestbook();
     } else {
       startRsvpButton.textContent = 'RSVP';
       // Hide guestbook for non-logged-in users
       guestbookContainer.style.display = 'none';
+      // Unsubscribe from the guestbook collection
+      unsubscribeGuestbook();
     }
   });
 
@@ -105,5 +116,29 @@ async function main() {
     // Return false to avoid redirect
     return false;
   });
+
+  // Listen to guestbook updates
+  function subscribeGuestbook() {
+    const q = query(collection(db, 'guestbook'), orderBy('timestamp', 'desc'));
+    guestbookListener = onSnapshot(q, (snaps) => {
+      // Reset page
+      guestbook.innerHTML = '';
+      // Loop through documents in database
+      snaps.forEach((doc) => {
+        // Create an HTML entry for each document and add it to the chat
+        const entry = document.createElement('p');
+        entry.textContent = doc.data().name + ': ' + doc.data().text;
+        guestbook.appendChild(entry);
+      });
+    });
+  }
+
+  // Unsubscribe from guestbook updates
+  function unsubscribeGuestbook() {
+    if (guestbookListener != null) {
+      guestbookListener();
+      guestbookListener = null;
+    }
+  }
 }
 main();
